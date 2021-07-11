@@ -3,8 +3,8 @@ Datastore = require "nedb-promises"
 _ = require "lodash"
 luckdb = Datastore.create "./luck.db"
 
-PuppetPadlocal = require "wechaty-puppet-padlocal"
-Wechaty = require "wechaty"
+{PuppetPadlocal} = require "wechaty-puppet-padlocal"
+{Wechaty, ScanStatus} = require "wechaty"
 
 token = process.env.TOKEN
 
@@ -14,7 +14,7 @@ bot = new Wechaty(
 )
 
 bot
-	.on "scan", (qrcode) ->
+	.on "scan", (qrcode, status) ->
 		if status is ScanStatus.Waiting and qrcode
 			require("qrcode-terminal").generate qrcode, small: true
 	.on "friendship", (friendship) ->
@@ -48,7 +48,7 @@ bot
 				await luckdb.count
 					roomid: room.id
 					status: 0
-			return room.say "该群有抽奖活动在进行，群主发送【结束抽奖】强制结束"
+			return room.say "该群有抽奖活动在进行，群主发送【结束抽奖】强制结束" if exists
 
 			texts = text.split "|"
 			unless texts.length is 3 and parseInt(texts[1]) > 0

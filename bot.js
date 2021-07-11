@@ -9,9 +9,9 @@ _ = require("lodash");
 
 luckdb = Datastore.create("./luck.db");
 
-PuppetPadlocal = require("wechaty-puppet-padlocal");
+({PuppetPadlocal} = require("wechaty-puppet-padlocal"));
 
-Wechaty = require("wechaty");
+({Wechaty} = require("wechaty"));
 
 token = process.env.TOKEN;
 
