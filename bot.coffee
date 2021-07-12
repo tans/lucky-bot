@@ -3,10 +3,14 @@ Datastore = require "nedb-promises"
 _ = require "lodash"
 luckdb = Datastore.create "./luck.db"
 
-{PuppetPadlocal} = require "wechaty-puppet-padlocal"
-{Wechaty, ScanStatus} = require "wechaty"
+{ PuppetPadlocal } = require "wechaty-puppet-padlocal"
+{ Wechaty, ScanStatus } = require "wechaty"
 
 token = process.env.TOKEN
+
+sleep = ->
+	new Promise (resolve) ->
+		setTimeout resolve, _.random(1.2, 3.2) * 1000
 
 bot = new Wechaty(
 	name: "luckybot"
@@ -18,6 +22,7 @@ bot
 		if status is ScanStatus.Waiting and qrcode
 			require("qrcode-terminal").generate qrcode, small: true
 	.on "friendship", (friendship) ->
+		await sleep()
 		switch friendship.type()
 			when bot.Friendship.Type.Receive
 				await friendship.accept()
@@ -26,12 +31,15 @@ bot
 				contact = friendship.contact()
 				await contact.say "拉我入群即可进行抽奖活动"
 	.on "room-invite", (invitation) ->
+		await sleep()
 		await invitation.accept()
 	.on "room-join", (room, inviteeList) ->
+		await sleep()
 		for invitee in inviteeList
 			if invitee.self()
 				room.say "我是抽奖助手， 发送【抽奖】关键字进行活动设置"
 	.on "message", (message) ->
+		await sleep()
 		return unless message.room()
 		return unless message.text()
 		return if message.talker().self()
@@ -41,6 +49,7 @@ bot
 
 		if text is "抽奖"
 			room.say "创建抽奖命令  【抽奖活动|获奖人数|获奖礼品】例如："
+			await sleep()
 			room.say "抽奖活动|2人|精美铅笔一支"
 
 		if text.startsWith "抽奖活动"
@@ -48,7 +57,9 @@ bot
 				await luckdb.count
 					roomid: room.id
 					status: 0
-			return room.say "该群有抽奖活动在进行，群主发送【结束抽奖】强制结束" if exists
+			return room.say(
+				"该群有抽奖活动在进行，群主发送【结束抽奖】强制结束"
+			) if exists
 
 			texts = text.split "|"
 			unless texts.length is 3 and parseInt(texts[1]) > 0
@@ -68,6 +79,7 @@ bot
 				await luckdb.findOne
 					roomid: room.id
 					status: 0
+
 			return room.say "没有抽奖活动" unless luckdoc
 
 			return room.say "您已参与活动", message.talker() if (
