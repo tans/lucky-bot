@@ -124,7 +124,7 @@ bot
 				return member
 
 			room.say "恭喜获奖者, 抽奖活动结束", winners...
-			await LuckDB.findOneAndUpdate
+			await LuckDB.update
 				_id: luckdoc._id
 			,
 				$set:
