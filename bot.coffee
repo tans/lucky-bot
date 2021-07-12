@@ -1,7 +1,7 @@
 require("dotenv").config()
 Datastore = require "nedb-promises"
 _ = require "lodash"
-luckdb = Datastore.create "./luck.db"
+LuckDB = Datastore.create "./luck.db"
 
 { PuppetPadlocal } = require "wechaty-puppet-padlocal"
 { Wechaty, ScanStatus } = require "wechaty"
@@ -22,6 +22,7 @@ bot
 		if status is ScanStatus.Waiting and qrcode
 			require("qrcode-terminal").generate qrcode, small: true
 	.on "friendship", (friendship) ->
+		# 自动通过好友， 并发送拉入群提醒
 		await sleep()
 		switch friendship.type()
 			when bot.Friendship.Type.Receive
@@ -31,14 +32,17 @@ bot
 				contact = friendship.contact()
 				await contact.say "拉我入群即可进行抽奖活动"
 	.on "room-invite", (invitation) ->
+		# 自动通过群邀请
 		await sleep()
 		await invitation.accept()
 	.on "room-join", (room, inviteeList) ->
+		# 入群自我介绍
 		await sleep()
 		for invitee in inviteeList
 			if invitee.self()
 				room.say "我是抽奖助手， 发送【抽奖】关键字进行活动设置"
 	.on "message", (message) ->
+		# 群抽奖逻辑
 		await sleep()
 		return unless message.room()
 		return unless message.text()
@@ -54,7 +58,7 @@ bot
 
 		if text.startsWith "抽奖活动"
 			exists =
-				await luckdb.count
+				await LuckDB.count
 					roomid: room.id
 					status: 0
 			return room.say(
@@ -64,11 +68,12 @@ bot
 			texts = text.split "|"
 			unless texts.length is 3 and parseInt(texts[1]) > 0
 				return room.say "抽奖命令格式错误"
-			await luckdb.insert
+			await LuckDB.insert
 				name: texts[2]
 				num: parseInt texts[1]
 				status: 0
 				roomid: room.id
+				ownerid: message.talker().id
 				members: []
 
 			room.say "抽奖活动创建成功，大家发送【参与抽奖】即可参与"
@@ -76,7 +81,7 @@ bot
 
 		if text is "参与抽奖"
 			luckdoc =
-				await luckdb.findOne
+				await LuckDB.findOne
 					roomid: room.id
 					status: 0
 
@@ -86,7 +91,7 @@ bot
 				luckdoc.members.includes message.talker().id
 			)
 
-			await luckdb.update
+			await LuckDB.update
 				_id: luckdoc._id
 			,
 				$push:
@@ -94,12 +99,17 @@ bot
 
 			return room.say "成功参与抽奖活动", message.talker()
 
+		# if text is '结束抽奖' and
+
 		if text is "开奖"
 			luckdoc =
-				await luckdb.findOne
+				await LuckDB.findOne
 					roomid: room.id
 					status: 0
 			return room.say "没有抽奖活动" unless luckdoc
+			return room.say "非活动发起人无法开奖" unless (
+				luckdoc.ownerid is message.talker().id
+			)
 
 			members = await room.memberAll()
 			winners = _.sampleSize luckdoc.members, luckdoc.num
@@ -108,6 +118,11 @@ bot
 					return m.id == winner
 				return member
 
-			room.say "恭喜获奖者", winners...
+			room.say "恭喜获奖者, 抽奖活动结束", winners...
+			await LuckDB.findOneAndUpdate
+				_id: luckdoc._id
+			,
+				$set:
+					status: 1
 
 bot.start()
