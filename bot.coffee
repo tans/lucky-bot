@@ -52,11 +52,11 @@ bot
 		room = message.room()
 
 		if text is "抽奖"
-			room.say "创建抽奖命令  【抽奖活动|获奖人数|获奖礼品】例如："
+			room.say "创建抽奖命令  【发起抽奖|获奖人数】例如："
 			await sleep()
-			room.say "抽奖活动|2人|精美铅笔一支"
+			room.say "发起抽奖|2人"
 
-		if text.startsWith "抽奖活动"
+		if text.startsWith "发起抽奖"
 			exists =
 				await LuckDB.count
 					roomid: room.id
@@ -66,17 +66,22 @@ bot
 			) if exists
 
 			texts = text.split "|"
-			unless texts.length is 3 and parseInt(texts[1]) > 0
+			unless texts.length is 2 and parseInt(texts[1]) > 0
 				return room.say "抽奖命令格式错误"
-			await LuckDB.insert
-				name: texts[2]
-				num: parseInt texts[1]
-				status: 0
-				roomid: room.id
-				ownerid: message.talker().id
-				members: []
+			luck =
+				await LuckDB.insert
+					num: parseInt texts[1]
+					status: 0
+					roomid: room.id
+					ownerid: message.talker().id
+					members: []
 
-			room.say "抽奖活动创建成功，大家发送【参与抽奖】即可参与"
+			room.say(
+				"抽奖活动创建成功，抽#{
+					luck.num
+				}人。大家发送【参与抽奖】即可参与"
+				message.talker()
+			)
 			room.say "发送【开奖】即可开奖", message.talker()
 
 		if text is "参与抽奖"
