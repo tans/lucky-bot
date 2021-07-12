@@ -41,3 +41,7 @@ http://pad-local.com 注册即可获取7天试用
 # 效果图如下：
 
 <img src="luckbot.jpg" width="420px" />
+
+# DEMO 机器人二维码
+
+<img src="award_qr.jpg" width="420px" />
