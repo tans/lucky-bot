@@ -57,6 +57,7 @@ bot
 				name: texts[2]
 				num: parseInt texts[1]
 				status: 0
+				roomid: room.id
 				members: []
 
 			room.say "抽奖活动创建成功，大家发送【参与抽奖】即可参与"
@@ -89,7 +90,7 @@ bot
 			return room.say "没有抽奖活动" unless luckdoc
 
 			members = await room.memberAll()
-			winners = _sampleSize luckdoc.members, luckdoc.num
+			winners = _.sampleSize luckdoc.members, luckdoc.num
 			winners = winners.map (winner) ->
 				member = _.find members, (m) ->
 					return m.id == winner
